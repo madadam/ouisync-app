@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:cryptography/cryptography.dart';
@@ -16,58 +15,10 @@ import 'package:properties/properties.dart';
 import 'package:pubspec_parse/pubspec_parse.dart';
 import 'package:pub_semver/pub_semver.dart';
 
+import 'lib/common.dart';
+
 const rootWorkDir = 'releases';
 const String windowsArtifactDir = 'build/windows/x64/runner/Release';
-
-enum Flavor {
-  production(true, true, true),
-  nightly(true, true, false),
-  unofficial(false, false, false);
-
-  const Flavor(
-      this.requiresSigning, this.requiresSentryDSN, this.doGitCleanCheck);
-
-  final bool requiresSigning;
-  final bool requiresSentryDSN;
-  final bool doGitCleanCheck;
-
-  static Flavor fromString(String name) {
-    switch (name) {
-      case "":
-      case "production":
-        return Flavor.production;
-      case "nightly":
-        return Flavor.nightly;
-      case "unofficial":
-        return Flavor.unofficial;
-      default:
-        throw ('Invalid flavor "$name", must be one of {production, nightly, unofficial}');
-    }
-  }
-
-  @override
-  String toString() {
-    switch (this) {
-      case Flavor.production:
-        return "production";
-      case Flavor.nightly:
-        return "nightly";
-      case Flavor.unofficial:
-        return "unofficial";
-    }
-  }
-
-  String get displayString {
-    switch (this) {
-      case Flavor.production:
-        return "";
-      case Flavor.nightly:
-        return "nightly";
-      case Flavor.unofficial:
-        return "unofficial";
-    }
-  }
-}
 
 Future<void> main(List<String> args) async {
   final options = await Options.parse(args);
@@ -86,9 +37,7 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  if (buildDesc.flavor != Flavor.production) {
-    await addBadgeToIcons(buildDesc.flavor.displayString);
-  }
+  await generateIcons(buildDesc.flavor);
 
   // TODO: use `pubspec.name` here but first rename it from "ouisync_app" to "ouisync"
   final name = 'ouisync';
@@ -119,7 +68,7 @@ Future<void> main(List<String> args) async {
         assets.add(await collateAsset(outputDir, name, buildDesc, apk));
       }
     } finally {
-      secrets?.destroy();
+      await secrets?.destroy();
     }
   }
 
@@ -244,8 +193,8 @@ class Options {
     this.publisher,
     this.awaitUpload = false,
     this.flavor = Flavor.production,
-    this.androidKeyPropertiesPath = null,
-    this.sentryDSN = null,
+    this.androidKeyPropertiesPath,
+    this.sentryDSN,
   });
 
   static Future<Options> parse(List<String> args) async {
@@ -254,12 +203,21 @@ class Options {
     parser.addFlag('apk', help: 'Build Android APK', defaultsTo: false);
     parser.addFlag('aab', help: 'Build Android App Bundle', defaultsTo: false);
     parser.addFlag('exe', help: 'Build Windows installer', defaultsTo: false);
-    parser.addFlag('msix',
-        help: 'Build Windows MSIX package', defaultsTo: false);
-    parser.addFlag('deb-gui',
-        help: 'Build Linux deb GUI package', defaultsTo: false);
-    parser.addFlag('deb-cli',
-        help: 'Build Linux deb CLI package', defaultsTo: false);
+    parser.addFlag(
+      'msix',
+      help: 'Build Windows MSIX package',
+      defaultsTo: false,
+    );
+    parser.addFlag(
+      'deb-gui',
+      help: 'Build Linux deb GUI package',
+      defaultsTo: false,
+    );
+    parser.addFlag(
+      'deb-cli',
+      help: 'Build Linux deb CLI package',
+      defaultsTo: false,
+    );
 
     parser.addOption(
       'token-file',
@@ -326,9 +284,11 @@ class Options {
       negatable: false,
       help: 'Print this usage information',
     );
-    parser.addOption('flavor',
-        help:
-            'Specify a build flavor, one of {production, nightly, unofficial}, nightly is the default');
+    parser.addOption(
+      'flavor',
+      help: 'Specify a build flavor, one of {production, nightly, unofficial}',
+      defaultsTo: 'nightly',
+    );
 
     parser.addOption('android-key-properties',
         help: 'Path to Android key.properties file');
@@ -380,7 +340,7 @@ class Options {
     }
 
     final sentryDSNFile = results['sentry'];
-    String? sentryDSN = null;
+    String? sentryDSN;
 
     if (sentryDSNFile != null) {
       final file = File(sentryDSNFile);
@@ -810,7 +770,7 @@ Future<File> buildAab(
     BuildDesc buildDesc, AndroidSecrets? secrets, String? sentryDSN) async {
   Flavor flavor = buildDesc.flavor;
 
-  final env = Map<String, String>();
+  final env = <String, String>{};
 
   if (secrets != null) {
     env['KEYSTORE_PROPERTIES'] = secrets.keystorePropertiesPath;
@@ -1192,50 +1152,6 @@ Version determineVersion(Pubspec pubspec, Options options) {
       build: pubspecVersion.build[0].toString());
 }
 
-Future<void> run(
-  String command,
-  List<String> args, {
-  String? workingDirectory,
-  Map<String, String>? environment,
-}) async {
-  final process = await Process.start(
-    command,
-    args,
-    workingDirectory: workingDirectory,
-    // This helps on Windows with finding `command` in $PATH environment variable.
-    runInShell: true,
-    environment: environment,
-  );
-
-  unawaited(process.stdout.transform(utf8.decoder).forEach(stdout.write));
-  unawaited(process.stderr.transform(utf8.decoder).forEach(stderr.write));
-
-  final exitCode = await process.exitCode;
-
-  if (exitCode != 0) {
-    throw 'Command "$command ${args.join(' ')}" failed with exit code $exitCode';
-  }
-}
-
-Future<String> runCapture(
-  String command,
-  List<String> args, {
-  String? workingDirectory,
-}) async {
-  final result = await Process.run(
-    command,
-    args,
-    workingDirectory: workingDirectory,
-  );
-
-  if (result.exitCode != 0) {
-    stderr.write(result.stderr);
-    throw 'Command $command ${args.join(' ')} failed with exit code $exitCode';
-  }
-
-  return result.stdout.trim();
-}
-
 Future<List<int>> runCaptureBinary(
   String command,
   List<String> args, {
@@ -1316,63 +1232,14 @@ Future<String?> getSentryDSN(Options options) async {
   return await Pass.string('$base/sentry_dsn');
 }
 
-class IconBadgeDesc {
-  String fileName;
-  String geometry;
-  String pointsize;
-
-  IconBadgeDesc(this.fileName, this.pointsize, this.geometry);
-}
-
-Future<void> addBadgeToIcons(String text) async {
-  String binaryName;
-
-  if (Platform.isWindows) {
-    binaryName = "magick";
-  } else {
-    binaryName = "convert";
-  }
-
-  final descriptions = [
-    IconBadgeDesc("ic_launcher.png", '40', "+16+16"),
-    IconBadgeDesc("ic_launcher_foreground.png", '40', "+100+120"),
-    IconBadgeDesc("ic_launcher_round.png", '40', "+16+16"),
-    IconBadgeDesc("ouisync_icon.png", '40', "+16+16"),
-    IconBadgeDesc("OuisyncFull.png", '40', "+300+16"),
-    IconBadgeDesc("Ouisync_v1_1560x1553.png", '200', "+64+124"),
-  ];
-
-  for (final desc in descriptions) {
-    // Use imagemagick's `convert` because the 'package:image/image.dart' lacks features
-    // (and some things like setting a font color doesn't seem to work).
-    // TODO: This overwrites the existing png files in git, which is annoying when done not
-    // on CI.
-    await run(binaryName, [
-      'assets/${desc.fileName}',
-      '-undercolor',
-      'red',
-      '-font',
-      // Picked randomly by what is on my and the CI machines.
-      'DejaVu-Sans',
-      '-gravity',
-      'SouthEast',
-      '-pointsize',
-      desc.pointsize,
-      '-annotate',
-      desc.geometry,
-      text,
-      'assets/${desc.fileName}',
-    ]);
-  }
-}
-
 class AndroidSecrets {
-  String keystorePropertiesPath;
-  Future<void> Function()? onDestroy;
+  final String keystorePropertiesPath;
+  final Future<void> Function()? onDestroy;
 
-  AndroidSecrets(this.keystorePropertiesPath, [this.onDestroy = null]);
+  AndroidSecrets(this.keystorePropertiesPath, [this.onDestroy]);
+
   Future<void> destroy() async {
-    onDestroy?.call();
+    await onDestroy?.call();
   }
 }
 
@@ -1396,7 +1263,7 @@ Future<AndroidSecrets> prepareAndroidSecretsFromPass(Flavor flavor) async {
           .create())
       .createTemp();
 
-  final deleteSecrets = () => dir.delete(recursive: true);
+  Future<void> deleteSecrets() => dir.delete(recursive: true);
 
   try {
     final base = 'cenoers/ouisync/app/$flavor/android';
@@ -1405,15 +1272,15 @@ Future<AndroidSecrets> prepareAndroidSecretsFromPass(Flavor flavor) async {
     final keyAlias = await Pass.string('$base/keyAlias');
     final keyPassword = await Pass.string('$base/keyPassword');
 
-    final keystoreJks = File(dir.path + "/keystore.jks");
+    final keystoreJks = File("${dir.path}/keystore.jks");
     final keystoreJksContent = await Pass.binary('$base/keystore.jks');
 
     await keystoreJks.writeAsBytes(keystoreJksContent);
 
-    final keystoreProperties = File(dir.path + "/key.properties");
-    await keystoreProperties.writeAsString("storePassword=$storePassword\n" +
-        "keyAlias=$keyAlias\n" +
-        "keyPassword=$keyPassword\n" +
+    final keystoreProperties = File("${dir.path}/key.properties");
+    await keystoreProperties.writeAsString("storePassword=$storePassword\n"
+        "keyAlias=$keyAlias\n"
+        "keyPassword=$keyPassword\n"
         "storeFile=${keystoreJks.path}\n");
 
     return AndroidSecrets(keystoreProperties.path, deleteSecrets);

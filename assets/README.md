@@ -8,7 +8,7 @@ flutter pub run icons_launcher:create
 
 As described [here](https://pub.dev/packages/icons_launcher).
 
-The configuration for the icons generation are located in `icons_launcher.yaml`
+The configuration for the icons generation are located in `icons_launcher-<flavor>.yaml` (one file per flavor).
 
 **NOTE**: We are using adaptive icons for Android, and the confiuguration files are located, together with the required images, in `/assets`.
 A round icon is also provided, in case is needed for some Android OEMs
