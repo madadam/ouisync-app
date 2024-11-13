@@ -37,8 +37,6 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  await generateIcons(buildDesc.flavor);
-
   // TODO: use `pubspec.name` here but first rename it from "ouisync_app" to "ouisync"
   final name = 'ouisync';
 

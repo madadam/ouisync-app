@@ -102,6 +102,28 @@ flutter {
    source = "../.."
 }
 
+// Generate icons
+android.productFlavors.each { flavor ->
+    tasks.register("generate${flavor.name.capitalize()}Icons", Exec) {
+        workingDir "${project.rootDir}/.."
+        commandLine 'dart', 'run', 'util/generate-icons.dart', flavor.name
+    }
+}
+
+afterEvaluate {
+    android.productFlavors.each { flavor ->
+        def flavorName = flavor.name.capitalize()
+
+        android.buildTypes.each { buildType ->
+            def buildName = buildType.name.capitalize()
+
+            tasks.named("generate${flavorName}${buildName}Assets") {
+                dependsOn "generate${flavorName}Icons"
+            }
+        }
+    }
+}
+
 class SigningConfig {
     String keyAlias
     String keyPassword
@@ -141,11 +163,10 @@ def checkFlavorParameter(String currentFlavor, availableFlavors) {
         if (availableFlavors.empty) {
             return
         }
-        throw new GradleException("Missing '--flavor=${availableFlavorNames}' argument.")
-    }
 
-    if (!availableFlavorNames.contains(currentFlavor)) {
-        throw new GradleException("Unrecognized flavor '${currentFlavor}'. Use one from ${availableFlavorNames}.")
+        logger.warn("Missing '--flavor=${availableFlavorNames.join('|')}' argument.")
+    } else if (!availableFlavorNames.contains(currentFlavor)) {
+        logger.warn("Unrecognized flavor '${currentFlavor}'. Use one from ${availableFlavorNames}.")
     }
 }
 
