@@ -9,7 +9,6 @@ import '../../generated/l10n.dart';
 import '../cubits/cubits.dart';
 import '../models/models.dart';
 import '../pages/pages.dart';
-import '../utils/master_key.dart';
 import '../utils/platform/platform.dart';
 import '../utils/utils.dart';
 import '../widgets/widgets.dart';
@@ -34,8 +33,8 @@ mixin RepositoryActionsMixin on LoggyType {
       return;
     }
 
-    await Dialogs.executeFutureWithLoadingDialog(
-      null,
+    await LoadingScope.run(
+      context,
       reposCubit.renameRepository(repoCubit.location, newName),
     );
 
@@ -221,8 +220,8 @@ mixin RepositoryActionsMixin on LoggyType {
     );
 
     if (deleteRepo ?? false) {
-      await Dialogs.executeFutureWithLoadingDialog(
-        null,
+      await LoadingScope.run(
+        context,
         reposCubit.deleteRepository(repoLocation),
       );
 

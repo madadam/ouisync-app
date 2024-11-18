@@ -16,6 +16,7 @@ import '../../utils/utils.dart'
         AppLoggy,
         showSnackBar,
         ThemeGetter;
+import '../loading_scope.dart';
 import '../widgets.dart'
     show
         ActionsDialog,
@@ -146,8 +147,8 @@ class _FolderDetailState extends State<FolderDetail> with AppLogger {
     if (deleteFolder != true) return;
 
     final recursive = !isEmpty;
-    final deleteFolderOk = await Dialogs.executeFutureWithLoadingDialog(
-      null,
+    final deleteFolderOk = await LoadingScope.run(
+      context,
       repo.deleteFolder(path, recursive),
     );
     if (deleteFolderOk) {

@@ -7,6 +7,7 @@ import 'package:loggy/loggy.dart';
 import 'package:ouisync/errors.dart';
 import 'package:ouisync/native_channels.dart';
 import 'package:ouisync/ouisync.dart' show Session;
+import 'package:ouisync_app/app/widgets/loading_scope.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:result_type/result_type.dart' show Failure, Result, Success;
@@ -209,19 +210,22 @@ class _OuisyncAppState extends State<OuisyncApp>
   @override
   Widget build(BuildContext context) => MediaReceiver(
         controller: receivedMediaController,
-        child: OnboardingPage(widget.localeCubit, widget.settings,
-            mainPage: MainPage(
-              localeCubit: widget.localeCubit,
-              mountCubit: mountCubit,
-              nativeChannels: widget.nativeChannels,
-              packageInfo: widget.packageInfo,
-              powerControl: powerControl,
-              receivedMedia: receivedMediaController.stream,
-              reposCubit: reposCubit,
-              session: widget.session,
-              settings: widget.settings,
-              windowManager: widget.windowManager,
-            )),
+        child: OnboardingPage(
+          widget.localeCubit,
+          widget.settings,
+          mainPage: MainPage(
+            localeCubit: widget.localeCubit,
+            mountCubit: mountCubit,
+            nativeChannels: widget.nativeChannels,
+            packageInfo: widget.packageInfo,
+            powerControl: powerControl,
+            receivedMedia: receivedMediaController.stream,
+            reposCubit: reposCubit,
+            session: widget.session,
+            settings: widget.settings,
+            windowManager: widget.windowManager,
+          ),
+        ),
       );
 
   Future<void> _init() async {
@@ -269,8 +273,10 @@ MaterialApp _createInMaterialApp(
       ],
       supportedLocales: S.delegate.supportedLocales,
       home: topWidget,
-      builder: (context, child) => FlavorBanner(
-        child: child ?? SizedBox.shrink(),
+      builder: (context, child) => LoadingScope(
+        child: FlavorBanner(
+          child: child ?? SizedBox.shrink(),
+        ),
       ),
       navigatorObservers: navigatorObservers,
     );

@@ -19,7 +19,7 @@ import '../models/models.dart'
         OpenRepoEntry,
         RepoLocation,
         SetLocalSecret;
-import '../utils/utils.dart' show AppLogger, Dialogs, Strings;
+import '../utils/utils.dart' show AppLogger, Strings;
 import 'cubits.dart' show CubitActions, ReposCubit;
 
 class RepoCreationState {
@@ -157,22 +157,17 @@ class RepoCreationCubit extends Cubit<RepoCreationState>
       return;
     }
 
-    await Dialogs.executeFutureWithLoadingDialog(
-      null,
-      () async {
-        final accessMode = await token.mode;
-        final suggestedName = await token.suggestedName;
-        final useCacheServers =
-            await reposCubit.cacheServers.isEnabledForShareToken(token);
+    final accessMode = await token.mode;
+    final suggestedName = await token.suggestedName;
+    final useCacheServers =
+        await reposCubit.cacheServers.isEnabledForShareToken(token);
 
-        emitUnlessClosed(state.copyWith(
-          accessMode: accessMode,
-          suggestedName: suggestedName,
-          token: token,
-          useCacheServers: useCacheServers,
-        ));
-      }(),
-    );
+    emitUnlessClosed(state.copyWith(
+      accessMode: accessMode,
+      suggestedName: suggestedName,
+      token: token,
+      useCacheServers: useCacheServers,
+    ));
   }
 
   void acceptSuggestedName() {

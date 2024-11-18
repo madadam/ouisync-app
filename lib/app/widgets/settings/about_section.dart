@@ -29,13 +29,13 @@ import '../../utils/utils.dart'
         AppLogger,
         AppThemeExtension,
         Constants,
-        Dialogs,
         Dimensions,
         dumpAll,
         Fields,
         formatSize,
         Settings,
         ThemeGetter;
+import '../loading_scope.dart';
 import '../widgets.dart' show InfoBuble, NegativeButton, PositiveButton;
 import 'app_version_tile.dart';
 import 'settings_section.dart';
@@ -203,21 +203,19 @@ class AboutSection extends SettingsSection with AppLogger {
     if (PlatformValues.isMobileDevice) {
       final pageTitle = Text(title);
 
-      await Dialogs.executeWithLoadingDialog(
-        null,
-        () async {
-          final content = await webView.loadUrl(context, url);
+      final content = await LoadingScope.run(
+        context,
+        webView.loadUrl(context, url),
+      );
 
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WebViewPage(
-                title: pageTitle,
-                content: content,
-              ),
-            ),
-          );
-        },
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WebViewPage(
+            title: pageTitle,
+            content: content,
+          ),
+        ),
       );
     } else {
       await webView.launchUrl(url);
@@ -235,7 +233,7 @@ class AboutSection extends SettingsSection with AppLogger {
     }
 
     if (attachments.logs) {
-      final logs = await Dialogs.executeFutureWithLoadingDialog(
+      final logs = await LoadingScope.run(
         context,
         dumpAll(
           context,

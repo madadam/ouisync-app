@@ -421,10 +421,14 @@ class _MainPageState extends State<MainPage>
   ) =>
       BlocBuilder<RepoCubit, RepoState>(
         bloc: repo.cubit,
-        builder: (context, state) => _selectLayoutWidget(directionality),
+        builder: (context, state) =>
+            _selectLayoutWidget(context, directionality),
       );
 
-  Widget _selectLayoutWidget(TextDirection directionality) {
+  Widget _selectLayoutWidget(
+    BuildContext context,
+    TextDirection directionality,
+  ) {
     final current = _currentRepo;
 
     if (current == null || current is LoadingRepoEntry) {
@@ -447,7 +451,7 @@ class _MainPageState extends State<MainPage>
       }
 
       _appSettingsIconFocus.unfocus();
-      return _contentBrowser(current.cubit, directionality);
+      return _contentBrowser(context, current.cubit, directionality);
     }
 
     return Center(
@@ -458,7 +462,11 @@ class _MainPageState extends State<MainPage>
     );
   }
 
-  Widget _contentBrowser(RepoCubit repo, TextDirection directionality) {
+  Widget _contentBrowser(
+    BuildContext context,
+    RepoCubit repo,
+    TextDirection directionality,
+  ) {
     Widget child;
     final folder = repo.state.currentFolder;
 
@@ -474,7 +482,7 @@ class _MainPageState extends State<MainPage>
         );
       }
     } else {
-      child = _contentsList(repo);
+      child = _contentsList(context, repo);
     }
 
     return ValueListenableBuilder(
@@ -504,6 +512,7 @@ class _MainPageState extends State<MainPage>
   }
 
   Future<void> _previewFile(
+    BuildContext context,
     RepoCubit repo,
     FileEntry entry,
     bool useDefaultApp,
@@ -580,8 +589,8 @@ class _MainPageState extends State<MainPage>
       /// Until we have a proper implementation for OSX (iOS, macOS), we are
       /// using a local HTTP server and the internet navigator previewer.
       try {
-        final url = await Dialogs.executeFutureWithLoadingDialog(
-          null,
+        final url = await LoadingScope.run(
+          context,
           repo.previewFileUrl(entry.path),
         );
 
@@ -596,7 +605,7 @@ class _MainPageState extends State<MainPage>
     }
   }
 
-  Widget _contentsList(RepoCubit currentRepoCubit) {
+  Widget _contentsList(BuildContext context, RepoCubit currentRepoCubit) {
     final contents = currentRepoCubit.state.currentFolder.content;
     final totalEntries = contents.length;
 
@@ -623,7 +632,8 @@ class _MainPageState extends State<MainPage>
                       mainAction: () async {
                         if (_bottomSheetInfo.value.type ==
                             BottomSheetType.gone) {
-                          await _previewFile(currentRepoCubit, entry, true);
+                          await _previewFile(
+                              context, currentRepoCubit, entry, true);
                           return;
                         }
 
@@ -688,6 +698,7 @@ class _MainPageState extends State<MainPage>
           repoCubit: repoCubit,
           entry: entry,
           onPreviewFile: (cubit, data, useDefaultApp) => _previewFile(
+            context,
             cubit,
             data,
             useDefaultApp,

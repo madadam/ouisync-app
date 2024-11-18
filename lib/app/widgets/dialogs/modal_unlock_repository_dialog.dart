@@ -7,7 +7,6 @@ import '../../utils/utils.dart'
         AccessModeLocalizedExtension,
         AppLogger,
         Constants,
-        Dialogs,
         Dimensions,
         Fields,
         MasterKey,
@@ -16,6 +15,7 @@ import '../../utils/utils.dart'
 import '../../models/models.dart'
     show AuthModeKeyStoredOnDevice, RepoLocation, SecretKeyOrigin;
 import '../../cubits/cubits.dart' show RepoCubit;
+import '../loading_scope.dart';
 import '../widgets.dart' show NegativeButton, PositiveButton;
 
 class UnlockRepository extends StatefulWidget {
@@ -133,7 +133,7 @@ class _UnlockRepositoryState extends State<UnlockRepository> with AppLogger {
 
     final password = LocalPassword(passwordController.text);
 
-    await Dialogs.executeFutureWithLoadingDialog(
+    await LoadingScope.run(
       context,
       widget.repoCubit.unlock(password),
     );
@@ -152,7 +152,7 @@ class _UnlockRepositoryState extends State<UnlockRepository> with AppLogger {
     }
 
     if (store) {
-      await Dialogs.executeFutureWithLoadingDialog(
+      await LoadingScope.run(
         context,
         updateLocalSecretStore(password),
       );

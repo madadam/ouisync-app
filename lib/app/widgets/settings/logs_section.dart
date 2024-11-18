@@ -118,7 +118,9 @@ class LogsSection extends SettingsSection with AppLogger {
       (panicCounter.state ?? 0) > 0 || mount.state is MountStateError;
 
   Future<void> _saveLogs(
-      BuildContext context, NatDetection natDetection) async {
+    BuildContext context,
+    NatDetection natDetection,
+  ) async {
     final tempFile = await _dumpInfo(context, natDetection);
 
     loggy.debug('Saving logs');

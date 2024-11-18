@@ -9,6 +9,7 @@ import 'package:styled_text/styled_text.dart';
 
 import '../pages/pages.dart';
 import '../widgets/async_text_form_field.dart';
+import '../widgets/loading_scope.dart';
 import 'platform/platform.dart';
 import 'utils.dart';
 
@@ -594,8 +595,8 @@ class Fields {
       return;
     }
 
-    final content = await Dialogs.executeFutureWithLoadingDialog(
-      null,
+    final content = await LoadingScope.run(
+      context,
       webView.loadUrl(context, url),
     );
 

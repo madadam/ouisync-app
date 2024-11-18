@@ -13,6 +13,7 @@ import '../../cubits/cubits.dart'
         RepoCubit;
 import '../../utils/utils.dart'
     show AppLogger, Dialogs, Dimensions, Fields, FileIO, showSnackBar;
+import '../loading_scope.dart';
 import '../widgets.dart' show ActionsDialog, FolderCreation;
 
 class DirectoryActions extends StatelessWidget with AppLogger {
@@ -164,9 +165,9 @@ class DirectoryActions extends StatelessWidget with AppLogger {
       return;
     }
 
-    final result = await Dialogs.executeWithLoadingDialog(
-      null,
-      () async => await cubit.createFolder(newFolderPath),
+    final result = await LoadingScope.run(
+      context,
+      cubit.createFolder(newFolderPath),
     );
 
     if (!result) {

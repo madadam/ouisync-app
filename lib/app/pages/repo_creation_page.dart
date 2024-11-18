@@ -25,10 +25,12 @@ class RepoCreationPage extends StatelessWidget {
                 : S.current.titleAddRepository,
           ),
         ),
-        body: BlocHolder(
-          create: () =>
-              RepoCreationCubit(reposCubit: reposCubit)..setToken(token),
-          builder: (context, cubit) => RepoCreation(cubit),
+        body: Builder(
+          builder: (context) => BlocHolder(
+            create: () =>
+                RepoCreationCubit(reposCubit: reposCubit)..setToken(token),
+            builder: (context, cubit) => RepoCreation(cubit),
+          ),
         ),
       );
 }

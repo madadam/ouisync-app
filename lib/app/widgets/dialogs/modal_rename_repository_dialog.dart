@@ -7,13 +7,13 @@ import '../../cubits/cubits.dart' show RepoCubit;
 import '../../utils/utils.dart'
     show
         AppThemeExtension,
-        Dialogs,
         Dimensions,
         Fields,
         Strings,
         TextEditingControllerExtension,
         ThemeGetter,
         validateNoEmptyMaybeRegExpr;
+import '../loading_scope.dart';
 import '../widgets.dart' show NegativeButton, PositiveButton;
 
 class RenameRepository extends StatefulWidget {
@@ -108,8 +108,8 @@ class _RenameRepository extends State<RenameRepository> {
     // Check if name is already taken
     final newLocation =
         widget.repoCubit.location.rename(newNameController.text);
-    final exists = await Dialogs.executeFutureWithLoadingDialog(
-      null,
+    final exists = await LoadingScope.run(
+      context,
       File(newLocation.path).exists(),
     );
 

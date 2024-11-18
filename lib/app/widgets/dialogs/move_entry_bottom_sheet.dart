@@ -157,8 +157,8 @@ class _MoveEntryDialogState extends State<MoveEntryDialog> {
               text: S.current.actionMove,
               onPressed: canMove
                   ? () async {
-                      await Dialogs.executeFutureWithLoadingDialog(
-                        null,
+                      await LoadingScope.run(
+                        context,
                         widget.onMoveEntry(),
                       ).then(
                         (_) {
