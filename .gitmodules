@@ -1,4 +1,4 @@
 [submodule "ouisync"]
-	url = https://github.com/equalitie/ouisync.git
+	url = https://github.com/madadam/ouisync.git
 	path = ouisync
-	branch = develop
+	branch = ci-debug
