@@ -53,7 +53,7 @@ Future<Response> _handleFile(
   }
 
   final file = await openFile(filePath);
-  final fileSize = await file.length;
+  final fileSize = await file.getLength();
 
   return Response.ok(
       request.method == 'HEAD' ? null : file.read(0, fileSize).asStream(),

@@ -3,12 +3,14 @@ import 'dart:collection';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ouisync/bindings.g.dart';
 import 'package:ouisync/native_channels.dart';
 import 'package:ouisync/ouisync.dart' as oui;
 import 'package:ouisync/state_monitor.dart';
 
 import '../../generated/l10n.dart';
 import '../models/models.dart';
+import '../utils/random.dart';
 import '../utils/utils.dart';
 import 'cubits.dart';
 
@@ -75,9 +77,9 @@ class ReposCubit extends Cubit<ReposState> with CubitActions, AppLogger {
   Future<void> _init() async {
     emitUnlessClosed(state.copyWith(isLoading: true));
 
-    final repos = await oui.Repository.list(_session);
+    final repos = await _session.listRepositories();
 
-    for (final repo in repos) {
+    for (final repo in repos.values) {
       await _addRepo(repo);
     }
 
@@ -93,7 +95,7 @@ class ReposCubit extends Cubit<ReposState> with CubitActions, AppLogger {
   StateMonitor get rootStateMonitor => _session.rootStateMonitor;
 
   Future<oui.ShareToken> createToken(String tokenString) =>
-      oui.ShareToken.fromString(session, tokenString);
+      session.validateShareToken(tokenString);
 
   Future<void> setCurrent(RepoEntry? entry) async {
     if (state.current == entry) {
@@ -154,7 +156,8 @@ class ReposCubit extends Cubit<ReposState> with CubitActions, AppLogger {
         final secret = await encryptedSecret.decrypt(_settings.masterKey);
         await cubit.unlock(secret);
       } else {
-        loggy.error('Failed to load secret key for ${repo.path}');
+        loggy.error(
+            'Failed to load secret key for ${cubit.state.location.path}');
       }
     }
 
@@ -215,7 +218,7 @@ class ReposCubit extends Cubit<ReposState> with CubitActions, AppLogger {
     final oui.Repository repo;
 
     try {
-      repo = await oui.Repository.open(_session, path: location.path);
+      repo = await _session.openRepository(path: location.path);
     } on oui.AlreadyExists {
       showSnackBar(S.current.repositoryIsAlreadyImported);
       loggy.warning(
@@ -245,30 +248,35 @@ class ReposCubit extends Cubit<ReposState> with CubitActions, AppLogger {
     }
 
     final localSecret = switch (setLocalSecret) {
-      LocalSecretKeyAndSalt() => setLocalSecret,
-      LocalPassword() => await passwordHasher.hashPassword(setLocalSecret),
+      oui.SetLocalSecretKeyAndSalt() => setLocalSecret,
+      oui.SetLocalSecretPassword(value: final password) =>
+        await passwordHasher.hashPassword(password),
     };
 
     SetLocalSecret readSecret;
     SetLocalSecret writeSecret;
 
-    switch (await token?.accessMode) {
+    SetLocalSecretKeyAndSalt randomLocalSecret() => SetLocalSecretKeyAndSalt(
+          key: randomSecretKey(),
+          salt: randomSalt(),
+        );
+
+    switch (await token?.let(session.getShareTokenAccessMode)) {
       case oui.AccessMode.blind:
-        readSecret = LocalSecretKeyAndSalt.random();
-        writeSecret = LocalSecretKeyAndSalt.random();
+        readSecret = randomLocalSecret();
+        writeSecret = randomLocalSecret();
       case oui.AccessMode.read:
         readSecret = localSecret;
-        writeSecret = LocalSecretKeyAndSalt.random();
+        writeSecret = randomLocalSecret();
       case oui.AccessMode.write:
-        readSecret = LocalSecretKeyAndSalt.random();
+        readSecret = randomLocalSecret();
         writeSecret = localSecret;
       case null:
-        readSecret = LocalSecretKeyAndSalt.random();
+        readSecret = randomLocalSecret();
         writeSecret = localSecret;
     }
 
-    final repo = await oui.Repository.create(
-      _session,
+    final repo = await _session.createRepository(
       path: location.path,
       readSecret: readSecret,
       writeSecret: writeSecret,

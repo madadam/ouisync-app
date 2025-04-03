@@ -1,7 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mutex/mutex.dart';
 import 'package:meta/meta.dart'; // for `@visibleForTesting`
-import 'dart:typed_data';
 import 'dart:convert';
 import './cipher.dart' as cipher;
 
@@ -49,7 +48,7 @@ class MasterKey {
     return await _cipher.encrypt(plainText);
   }
 
-  Future<String> encryptBytes(Uint8List plainText) async {
+  Future<String> encryptBytes(List<int> plainText) async {
     return await _cipher.encryptBytes(plainText);
   }
 
@@ -59,7 +58,7 @@ class MasterKey {
   }
 
   // Returns `null` if decryption fails.
-  Future<Uint8List?> decryptBytes(String encrypted) async {
+  Future<List<int>?> decryptBytes(String encrypted) async {
     return await _cipher.decryptBytes(encrypted);
   }
 

@@ -1,7 +1,13 @@
+import 'package:ouisync/ouisync.dart'
+    show
+        LocalSecret,
+        LocalSecretPassword,
+        LocalSecretSecretKey,
+        Password,
+        SecretKey;
 import 'package:ouisync_app/app/utils/log.dart';
 
 import '../utils/master_key.dart';
-import 'local_secret.dart';
 
 const _keys = (
   encryptedPassword: 'encryptedPassword',
@@ -97,14 +103,6 @@ class AuthModePasswordStoredOnDevice extends AuthMode {
         secureWithBiometrics ?? this.secureWithBiometrics,
       );
 
-  // May throw.
-  Future<LocalPassword> getRepositoryPassword(MasterKey masterKey) async {
-    final decrypted =
-        await EncryptedLocalPassword(encryptedPassword).decrypt(masterKey);
-    if (decrypted == null) throw AuthModeDecryptFailed;
-    return decrypted;
-  }
-
   @override
   Object? toJson() => {
         _keys.encryptedPassword: encryptedPassword,
@@ -142,11 +140,11 @@ class AuthModeKeyStoredOnDevice extends AuthMode {
 
   static Future<AuthModeKeyStoredOnDevice> encrypt(
     MasterKey masterKey,
-    LocalSecretKey plainKey, {
+    SecretKey plainKey, {
     required SecretKeyOrigin keyOrigin,
     required bool secureWithBiometrics,
   }) async {
-    final encryptedKey = await masterKey.encryptBytes(plainKey.bytes);
+    final encryptedKey = await masterKey.encryptBytes(plainKey.value);
 
     return AuthModeKeyStoredOnDevice(
       encryptedKey: encryptedKey,
@@ -165,14 +163,6 @@ class AuthModeKeyStoredOnDevice extends AuthMode {
         keyOrigin: keyOrigin ?? this.keyOrigin,
         secureWithBiometrics: secureWithBiometrics ?? this.secureWithBiometrics,
       );
-
-  // May throw.
-  Future<LocalSecretKey> decryptKey(MasterKey masterKey) async {
-    final decrypted =
-        await EncryptedLocalSecretKey(encryptedKey).decrypt(masterKey);
-    if (decrypted == null) throw AuthModeDecryptFailed();
-    return decrypted;
-  }
 
   @override
   Object? toJson() => {
@@ -295,7 +285,7 @@ sealed class LocalSecretInput {
 class LocalSecretManual extends LocalSecretInput {
   LocalSecretManual({required this.password, required this.store});
 
-  final LocalPassword password;
+  final Password password;
   final SecretKeyStore store;
 
   @override
@@ -346,10 +336,10 @@ class EncryptedLocalSecretKey implements EncryptedLocalSecret {
   EncryptedLocalSecretKey(this.encryptedKey);
 
   @override
-  Future<LocalSecretKey?> decrypt(MasterKey masterKey) async {
+  Future<LocalSecretSecretKey?> decrypt(MasterKey masterKey) async {
     final decrypted = await masterKey.decryptBytes(encryptedKey);
     if (decrypted == null) return null;
-    return LocalSecretKey(decrypted);
+    return LocalSecretSecretKey(SecretKey(decrypted));
   }
 }
 
@@ -358,10 +348,10 @@ class EncryptedLocalPassword implements EncryptedLocalSecret {
   EncryptedLocalPassword(this.encryptedPassword);
 
   @override
-  Future<LocalPassword?> decrypt(MasterKey masterKey) async {
+  Future<LocalSecretPassword?> decrypt(MasterKey masterKey) async {
     final decrypted = await masterKey.decrypt(encryptedPassword);
     if (decrypted == null) return null;
-    return LocalPassword(decrypted);
+    return LocalSecretPassword(Password(decrypted));
   }
 }
 

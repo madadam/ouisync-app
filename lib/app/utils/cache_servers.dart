@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:collection/collection.dart';
 import 'package:mutex/mutex.dart';
 import 'package:ouisync/ouisync.dart';
 
@@ -29,10 +28,10 @@ class CacheServers with AppLogger {
 
     // Use the remote control API to obrain the listener protocols and ports
     try {
-      listeners = await _session.remoteListenerAddrs(host).then(
+      listeners = await _session.getRemoteListenerAddrs(host).then(
             (addrs) => addrs
                 .map(PeerAddr.parse)
-                .whereNotNull()
+                .nonNulls
                 .map((addr) => (addr.proto, addr.port))
                 .toSet(),
           );
@@ -91,7 +90,7 @@ class CacheServers with AppLogger {
   /// Check whether the repo with the given token is mirrored on at least one of the defined cache
   /// servers.
   Future<bool> isEnabledForShareToken(ShareToken token) =>
-      _isEnabled(token.mirrorExists);
+      _isEnabled((host) => _session.mirrorExists(token, host));
 
   Future<bool> _isEnabled(
     Future<bool> Function(String) mirrorExists,

@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 export 'package:cryptography/cryptography.dart' show SecretKey;
@@ -33,7 +32,7 @@ class Cipher {
     return await encryptBytes(utf8.encode(data));
   }
 
-  Future<String> encryptBytes(Uint8List data) async {
+  Future<String> encryptBytes(List<int> data) async {
     final secretBox = await _algorithm.encrypt(data, secretKey: secretKey);
 
     final encryptedBytes = secretBox.concatenation();
@@ -52,12 +51,11 @@ class Cipher {
     }
   }
 
-  Future<Uint8List?> decryptBytes(String encryptedData) async {
+  Future<List<int>?> decryptBytes(String encryptedData) async {
     final secretBox = _boxFromString(encryptedData);
 
     try {
-      return Uint8List.fromList(
-          await _algorithm.decrypt(secretBox, secretKey: secretKey));
+      return _algorithm.decrypt(secretBox, secretKey: secretKey);
     } on SecretBoxAuthenticationError {
       return null;
     }
